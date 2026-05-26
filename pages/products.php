@@ -17,7 +17,14 @@ include '../config/db.php';
         if(count($products) > 0):
             foreach($products as $product): ?>
                 <div class="product-card">
-                    <div class="product-img">🛋️</div>
+                    <div class="product-img">
+    <?php if($product['image']): ?>
+        <img src="<?php echo $product['image']; ?>" 
+             alt="<?php echo $product['name']; ?>">
+    <?php else: ?>
+        🛋️
+    <?php endif; ?>
+</div>
                     <div class="product-info">
                         <h3><?php echo $product['name']; ?></h3>
                         <p><?php echo $product['description']; ?></p>
