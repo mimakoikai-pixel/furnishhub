@@ -1,128 +1,97 @@
 <?php
-include '../includes/header.php';
-include '../config/db.php';
-
-if(!isset($_SESSION['user']) || $_SESSION['role'] != 'admin'){
+session_start();
+if (!isset($_SESSION['admin'])) {
     header("Location: ../auth/login.php");
     exit();
 }
-
-// Handle delete
-if(isset($_GET['delete'])){
-    $id = $_GET['delete'];
-    $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
-    header("Location: manage_products.php");
-    exit();
-}
-
-// Handle add product
-$error = "";
-$success = "";
-
-if($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $name = trim($_POST['name']);
-    $description = trim($_POST['description']);
-    $price = $_POST['price'];
-    $category_id = $_POST['category_id'];
-    $stock = $_POST['stock'];
-
-    if(empty($name) || empty($price)){
-        $error = "Name and price are required!";
-    } else {
-        $stmt = $pdo->prepare("INSERT INTO products (name, description, price, category_id, stock) VALUES (?,?,?,?,?)");
-        $stmt->execute([$name, $description, $price, $category_id, $stock]);
-        $success = "Product added successfully!";
-    }
-}
-
-$products = $pdo->query("SELECT p.*, c.name as category_name 
-                         FROM products p 
-                         LEFT JOIN categories c ON p.category_id = c.id")->fetchAll();
-$categories = $pdo->query("SELECT * FROM categories")->fetchAll();
+include('../config/db.php');
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Products – FurnishHub Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f0eb; padding: 30px; }
+        h2 { color: #5c3d1e; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th { background: #5c3d1e; color: white; padding: 12px; text-align: left; }
+        td { padding: 10px 12px; border-bottom: 1px solid #e8d5b7; }
+        tr:hover { background: #fdf6ec; }
+        img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+        .btn { padding: 6px 12px; border-radius: 5px; text-decoration: none; font-size: 13px; }
+        .edit { background: #c9a96e; color: white; }
+        .delete { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.85; }
+        .add-btn {
+            display: inline-block; margin-bottom: 20px;
+            background: #5c3d1e; color: white;
+            padding: 10px 20px; border-radius: 6px; text-decoration: none;
+        }
+        .topbar {
+            background: #5c3d1e; color: white;
+            padding: 15px 30px; display: flex;
+            justify-content: space-between; align-items: center;
+            margin: -30px -30px 30px -30px;
+        }
+        .topbar h1 { margin: 0; font-size: 20px; }
+        .topbar a { color: #c9a96e; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
 
-<div class="manage-page">
-    <h2>Manage Products</h2>
-    <a href="dashboard.php" class="btn">← Back to Dashboard</a>
-
-    <div class="manage-grid">
-        <!-- Add Product Form -->
-        <div class="add-form">
-            <h3>Add New Product</h3>
-
-            <?php if($error): ?>
-                <div class="error-msg"><?php echo $error; ?></div>
-            <?php endif; ?>
-            <?php if($success): ?>
-                <div class="success-msg"><?php echo $success; ?></div>
-            <?php endif; ?>
-
-            <form method="POST">
-                <div class="form-group">
-                    <label>Product Name</label>
-                    <input type="text" name="name" placeholder="e.g. Modern Sofa" required>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" placeholder="Product description" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Price (KSh)</label>
-                    <input type="number" name="price" placeholder="e.g. 45000" required>
-                </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select name="category_id">
-                        <?php foreach($categories as $cat): ?>
-                            <option value="<?php echo $cat['id']; ?>">
-                                <?php echo $cat['name']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Stock</label>
-                    <input type="number" name="stock" placeholder="e.g. 10">
-                </div>
-                <button type="submit" class="btn-full">Add Product</button>
-            </form>
-        </div>
-
-        <!-- Products List -->
-        <div class="products-list">
-            <h3>All Products (<?php echo count($products); ?>)</h3>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Price</th>
-                        <th>Category</th>
-                        <th>Stock</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($products as $p): ?>
-                    <tr>
-                        <td><?php echo $p['id']; ?></td>
-                        <td><?php echo $p['name']; ?></td>
-                        <td>KSh <?php echo number_format($p['price'], 2); ?></td>
-                        <td><?php echo $p['category_name']; ?></td>
-                        <td><?php echo $p['stock']; ?></td>
-                        <td>
-                            <a href="?delete=<?php echo $p['id']; ?>" 
-                               class="btn-delete"
-                               onclick="return confirm('Delete this product?')">
-                               Delete
-                            </a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+<div class="topbar">
+    <h1>🛋️ FurnishHub Admin</h1>
+    <div>
+        <a href="dashboard.php">Dashboard</a> &nbsp;|&nbsp;
+        <a href="../auth/logout.php">🚪 Logout</a>
     </div>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<h2>🛋️ Manage Products</h2>
+<a href="add_product.php" class="add-btn">➕ Add New Product</a>
+
+<table>
+    <tr>
+        <th>Image</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price (KES)</th>
+        <th>Stock</th>
+        <th>Actions</th>
+    </tr>
+
+    <?php
+    // JOIN products with categories to get category name
+    $result = mysqli_query($conn,
+        "SELECT p.*, c.name AS category_name
+         FROM products p
+         LEFT JOIN categories c ON p.category_id = c.id
+         ORDER BY p.id DESC"
+    );
+
+    if (mysqli_num_rows($result) > 0) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            echo "<tr>";
+            echo "<td><img src='" . htmlspecialchars($row['image']) . "' alt='product'></td>";
+            echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['category_name'] ?? 'Uncategorized') . "</td>";
+            echo "<td>KES " . number_format($row['price'], 2) . "</td>";
+            echo "<td>" . ($row['stock'] ?? 0) . "</td>";
+            echo "<td>
+                    <a href='edit_product.php?id=" . $row['id'] . "' class='btn edit'>✏️ Edit</a>
+                    &nbsp;
+                    <a href='delete_product.php?id=" . $row['id'] . "'
+                       class='btn delete'
+                       onclick=\"return confirm('Delete this product?')\">🗑️ Delete</a>
+                  </td>";
+            echo "</tr>";
+        }
+    } else {
+        echo "<tr><td colspan='6' style='text-align:center;padding:20px;'>No products found.</td></tr>";
+    }
+    ?>
+</table>
+
+</body>
+</html>
